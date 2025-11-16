@@ -1,0 +1,81 @@
+workflows:
+  flutter-workflow:
+    name: Flutter Workflow
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get dependencies
+        script: |
+          flutter pub get
+      - name: Flutter test
+        script: |
+          flutter test
+      - name: Build ipa
+        script: |
+          flutter build ipa --release \
+            --build-number=$(($(app-store-connect get-latest-build-number "$APP_ID") + 1)) \
+            --build-name=$PUBLISH_VERSION
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      email:
+        recipients:
+          - user@example.com
+        notify:
+          success: true
+          failure: false
+      app_store_connect:
+        auth: integration
+        
+        # Configuration related to TestFlight (optional)
+        # Note: This action is performed during post-processing.
+        submit_to_testflight: false
+        beta_groups: # Specify the names of beta tester groups that will get access to the build once it has passed beta review.
+          - group name 1
+          - group name 2
+
+  android-workflow:
+    name: Android Workflow
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable
+      java: 17
+    scripts:
+      - name: Get dependencies
+        script: |
+          flutter pub get
+      - name: Flutter test
+        script: |
+          flutter test
+      - name: Build apk
+        script: |
+          flutter build apk --release \
+            --build-number=$BUILD_NUMBER \
+            --build-name=$PUBLISH_VERSION
+      - name: Build app bundle
+        script: |
+          flutter build appbundle --release \
+            --build-number=$BUILD_NUMBER \
+            --build-name=$PUBLISH_VERSION
+    artifacts:
+      - build/**/outputs/**/*.apk
+      - build/**/outputs/**/*.aab
+    publishing:
+      email:
+        recipients:
+          - user@example.com
+        notify:
+          success: true
+          failure: false
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: alpha
+        submit_as_draft: true
+
